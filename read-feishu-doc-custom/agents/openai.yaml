@@ -1,0 +1,4 @@
+interface:
+  display_name: "Read Feishu Doc Custom"
+  short_description: "Read Feishu wiki/doc and export Markdown"
+  default_prompt: "Use $read-feishu-doc-custom to fetch a Feishu wiki/doc and save it as Markdown."
