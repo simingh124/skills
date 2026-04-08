@@ -1,6 +1,6 @@
 ---
 name: read-paper-pro
-description: Read and summarize an arXiv paper from a title, arXiv ID, or arXiv URL (`abs`, `pdf`, `html`, `src`). Use this skill whenever the user asks to 读论文、总结 arXiv、分析方法/实验/训练细节、提炼研究思路，或直接给出论文标题 / 链接。 Resolve to the arXiv `src` endpoint, read the TeX source, and write a precise Chinese research note with linked prior work, inline figures/tables, and concrete follow-up ideas.
+description: Manual-only workflow for reading and summarizing an arXiv paper from a title, arXiv ID, or arXiv URL (`abs`, `pdf`, `html`, `src`). Only use this skill when the user explicitly invokes `read-paper-pro` or asks to use this specific skill. Do not auto-select it for generic requests to read papers, summarize arXiv content, analyze methods or experiments, extract training details, or brainstorm research ideas. When explicitly invoked, resolve to the arXiv `src` endpoint, read the TeX source, and write a precise Chinese research note with linked prior work, inline figures/tables, and concrete follow-up ideas.
 compatibility:
   tools:
     - bash
