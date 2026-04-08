@@ -1,0 +1,35 @@
+{
+  "skill_name": "read-paper-pro",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "请阅读论文《Scaling Transformer to 1M tokens and beyond with RMT》，基于 arXiv source 给我一份适合 AI PhD 的中文研究笔记，重点讲清楚 Task、Methodology、Insight & Novelty 和 Potential flaw。",
+      "expected_output": "解析标题到正确 arXiv 条目，下载 src 源码并把产物写入当前目录下的 ./<paper_slug>/，输出以中文为主的 markdown 总结，仅保留必要 English 专业术语；总结应包含头图、具体方法名及其超链接、创新点格式说明和 AI idea brainstorming，且每个单独介绍的实验后都紧跟对应结果图或结果表。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "帮我阅读这个论文并形成研究总结：https://arxiv.org/abs/2407.06324。不要读 PDF，要走 src source，并在核心挑战里用具体方法名加超链接。",
+      "expected_output": "从 abs URL 规范化到 src URL，读取 TeX 源文件并输出精确中文总结；总结应包含具体 prior method 名称、可点击链接、创新点格式说明与最后的 AI idea brainstorming，并把每个实验的图表证据放在对应实验描述之后。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "请基于这个链接的原始论文源码总结作者的 Motivation 和 Potential flaw：https://arxiv.org/pdf/2304.11062v2.pdf",
+      "expected_output": "从 pdf URL 规范化到 src URL，给出中文分析并保留必要 English 技术术语，且输出目录位于当前工作目录下。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "请阅读论文《LongLoRA: Efficient Fine-tuning of Long-Context Large Language Models》，不要直接读 PDF，先解析 arXiv src，然后给我一份适合 AI PhD 的中文研究笔记。实验部分要展示关键结果图和至少一个重要结果表。",
+      "expected_output": "从论文标题解析到正确 arXiv 条目，下载 src 源码到当前目录，输出包含头图、方法图、关键实验图、Markdown 结果表、训练方法、实验与评估和 AI idea brainstorming 的总结；每个被单独介绍的实验后都要紧跟对应结果图或结果表。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "请基于 arXiv source 阅读 https://arxiv.org/abs/2405.04517 ，写一份中文研究总结。核心挑战里不要用泛指名词，要点名具体 prior methods 并附链接；如果论文里有关键实验图和重要表格，也请放进总结。",
+      "expected_output": "从 abs URL 规范化到 src URL，读取 TeX 源码，输出精确中文总结；总结应包含具体 prior method 名称及超链接、关键实验图、Markdown 表格、训练方法、实验与评估和 AI idea brainstorming，并确保每个实验描述后紧跟其对应图表。",
+      "files": []
+    }
+  ]
+}
