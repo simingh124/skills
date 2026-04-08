@@ -30,6 +30,12 @@
       "prompt": "请基于 arXiv source 阅读 https://arxiv.org/abs/2405.04517 ，写一份中文研究总结。核心挑战里不要用泛指名词，要点名具体 prior methods 并附链接；如果论文里有关键实验图和重要表格，也请放进总结。",
       "expected_output": "从 abs URL 规范化到 src URL，读取 TeX 源码，输出精确中文总结；总结应包含具体 prior method 名称及超链接、关键实验图、Markdown 表格、训练方法、实验与评估和 AI idea brainstorming，并确保每个实验描述后紧跟其对应图表。",
       "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "请用 read-paper-pro 阅读这篇论文：https://arxiv.org/pdf/2604.03444 。开始下载前先告诉我下载、解压和总结的绝对路径。",
+      "expected_output": "先把 pdf URL 解析到论文标题 `Olmo Hybrid: From Theory to Practice and Back`，再基于标题生成 slug `olmo_hybrid_from_theory_to_practice_and_back`；汇报给用户的绝对路径必须使用该标题 slug，而不是 `2604_03444`，随后再继续 src 下载与总结流程。",
+      "files": []
     }
   ]
 }

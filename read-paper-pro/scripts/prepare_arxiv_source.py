@@ -294,8 +294,42 @@ def download_if_needed(src_url: str, download_path: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--resolve-only",
+        action="store_true",
+        help="Resolve arXiv metadata and output title-derived paths without downloading or unpacking source.",
+    )
     parser.add_argument("query", help="Paper title, arXiv ID, or arXiv URL")
     return parser.parse_args()
+
+
+def build_output(
+    query: str,
+    record: dict[str, str],
+    paper_dir: Path,
+    download_path: Path,
+    source_dir: Path,
+    summary_path: Path,
+    entrypoint: Path | None = None,
+) -> dict[str, str | None]:
+    arxiv_id = record["arxiv_id"]
+    title = record["title"]
+    paper_slug = slugify(title)
+    src_url = f"https://arxiv.org/src/{arxiv_id}"
+    return {
+        "query": query,
+        "query_kind": record["query_kind"],
+        "title": title,
+        "paper_slug": paper_slug,
+        "arxiv_id": arxiv_id,
+        "abs_url": f"https://arxiv.org/abs/{arxiv_id}",
+        "src_url": src_url,
+        "paper_dir": str(paper_dir),
+        "download_path": str(download_path),
+        "source_dir": str(source_dir),
+        "entrypoint": str(entrypoint) if entrypoint else None,
+        "summary_path": str(summary_path),
+    }
 
 
 def main() -> int:
@@ -316,6 +350,18 @@ def main() -> int:
     eprint(f"Source directory: {source_dir}")
     eprint(f"Summary path: {summary_path}")
 
+    output = build_output(
+        query=args.query,
+        record=record,
+        paper_dir=paper_dir,
+        download_path=download_path,
+        source_dir=source_dir,
+        summary_path=summary_path,
+    )
+    if args.resolve_only:
+        print(json.dumps(output, ensure_ascii=False, indent=2))
+        return 0
+
     download_if_needed(src_url, download_path)
 
     if not source_dir.exists() or not any(source_dir.iterdir()):
@@ -325,20 +371,7 @@ def main() -> int:
         eprint(f"Source directory already populated: {source_dir}")
 
     entrypoint = find_entrypoint(source_dir)
-    output = {
-        "query": args.query,
-        "query_kind": record["query_kind"],
-        "title": title,
-        "paper_slug": paper_slug,
-        "arxiv_id": arxiv_id,
-        "abs_url": f"https://arxiv.org/abs/{arxiv_id}",
-        "src_url": src_url,
-        "paper_dir": str(paper_dir),
-        "download_path": str(download_path),
-        "source_dir": str(source_dir),
-        "entrypoint": str(entrypoint),
-        "summary_path": str(summary_path),
-    }
+    output["entrypoint"] = str(entrypoint)
     print(json.dumps(output, ensure_ascii=False, indent=2))
     return 0
 

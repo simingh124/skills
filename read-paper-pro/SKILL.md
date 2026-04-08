@@ -38,6 +38,8 @@ compatibility:
 
 其中 `{paper_slug}` 由论文标题单词转成小写并用 `_` 连接，例如 `scaling_transformer_to_1m_tokens_and_beyond_with_rmt`。
 
+如果输入是 arXiv ID 或 URL，**不要**直接从原始输入猜 `{paper_slug}`。必须先解析出论文标题，再用标题生成 slug；例如 `https://arxiv.org/pdf/2604.03444` 应先解析到 `Olmo Hybrid: From Theory to Practice and Back`，再得到 `olmo_hybrid_from_theory_to_practice_and_back`，而不是 `2604_03444`。
+
 开始下载前，先明确告诉用户这三个**绝对路径**：
 
 - 下载路径
@@ -50,7 +52,27 @@ compatibility:
 
 ## Workflow
 
-### 1. Resolve paper and source tree
+### 1. Resolve paper metadata and announce paths
+
+运行：
+
+```bash
+python "<skill_dir>/scripts/prepare_arxiv_source.py" --resolve-only "<paper-title-or-url>"
+```
+
+如果系统没有 `python`，再改用 `python3`。
+
+要求：
+
+- 从脚本返回的 JSON 里读取 `title`、`paper_slug`、`download_path`、`source_dir`、`summary_path`
+
+- 对 URL / arXiv ID 输入，也必须使用**已解析标题**生成 `paper_slug`；禁止把 `2604.03444`、`2604_03444` 之类的 ID 当作论文名或 slug
+
+- 在真正下载前，先把这三个**绝对路径**明确告诉用户
+
+- 如果标题解析出多个候选，立刻停下让用户确认；不要猜
+
+### 2. Resolve paper and source tree
 
 运行：
 
@@ -68,7 +90,7 @@ python "<skill_dir>/scripts/prepare_arxiv_source.py" "<paper-title-or-url>"
 
 - 不要静默回退到 PDF
 
-### 2. Build a readable TeX view
+### 3. Build a readable TeX view
 
 如果论文跨多个 `\input{}` / `\include{}` 文件，运行：
 
@@ -80,7 +102,7 @@ python "<skill_dir>/scripts/collect_tex.py" \
 
 优先阅读：Abstract / Introduction / 方法 / 训练设置 / 核心实验 / 局限性。Appendix 只有在会影响总结时才读。
 
-### 3. Scan visual assets
+### 4. Scan visual assets
 
 先运行首轮图片扫描：
 
@@ -104,7 +126,7 @@ python "<skill_dir>/scripts/prepare_summary_figures.py" \
 
 - 如果图片定义在被 `\input{}` / `\include{}` 的子文件里，或使用 `\captionof{figure}`，也要照常纳入候选
 
-### 4. Build links for prior work
+### 5. Build links for prior work
 
 运行：
 
@@ -124,7 +146,7 @@ python "<skill_dir>/scripts/extract_reference_links.py" \
   对：`[Transformer-XL](...)`  
   错：`` `[Transformer-XL](...)` ``
 
-### 5. Draft the summary and choose evidence
+### 6. Draft the summary and choose evidence
 
 读取 `references/summary_prompt.md`，按其中结构写一版完整草稿，并先决定：
 
@@ -150,7 +172,7 @@ python "<skill_dir>/scripts/extract_reference_links.py" \
 
 - 重要实验图/表必须放在对应实验描述之后，不要统一堆到节末
 
-### 6. Materialize only the selected figures
+### 7. Materialize only the selected figures
 
 草稿定稿后，按实际用到的图片运行第二轮：
 
