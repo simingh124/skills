@@ -100,7 +100,21 @@ python "<skill_dir>/scripts/collect_tex.py" \
   --output "<paper_dir>/combined_source.tex"
 ```
 
-优先阅读：Abstract / Introduction / 方法 / 训练设置 / 核心实验 / 局限性。Appendix 只有在会影响总结时才读。
+优先阅读：Abstract / Introduction / 方法 / 训练设置 / 核心实验 / 局限性。
+
+正文读完后，**必须额外扫描** appendix / supplement 中与以下主题直接相关的 section：
+
+- `Training Details` / `Implementation Details`
+
+- `Additional Experiments` / `More Comparison`
+
+- `Ablation` / `Analysis`
+
+- `Limitations`
+
+同时检查相关**图注 / 表注**，因为训练 recipe、实验设置和额外结论经常只写在 caption 里。
+
+只有在正文、appendix / supplement、图注、表注都检查过之后，才允许写“**论文未明确给出**”。
 
 ### 4. Scan visual assets
 
@@ -146,7 +160,29 @@ python "<skill_dir>/scripts/extract_reference_links.py" \
   对：`[Transformer-XL](...)`  
   错：`` `[Transformer-XL](...)` ``
 
-### 6. Draft the summary and choose evidence
+### 6. Build a coverage ledger
+
+在动笔前，先做一个简短的 coverage ledger（可以是心智清单，也可以写成临时笔记；除非用户要求，否则不要单独交付）。至少覆盖：
+
+- `问题定义`：目标、约束、真正被优化的对象
+
+- `核心挑战`：至少 `2-4` 个具体 prior methods 及其不足
+
+- `方法`：核心思路、关键模块 / 算法步骤 / 系统流程、关键公式 / objective、trade-off
+
+- `训练方法`：模型与初始化、优化与训练日程、数据与样本构造、训练流程 / 阶段安排、batch / step / hardware / 成本、仍缺失的项
+
+- `实验与评估`：主实验、关键 ablation / analysis、泛化 / 鲁棒性 / 效率 / 人类评测等适用维度
+
+- `潜在问题与后续方向`：作者明确 limitation、你可合理推出的失效边界
+
+- `AI idea brainstorming`：至少 `3-5` 个 idea，每个都有问题、继承 insight、改动方案、最小实验、风险
+
+- `证据绑定`：每个单独展开的实验后面要跟哪张图 / 哪张表
+
+如果某一节目前只能写出抽象概括，先回到源码补读证据，再写最终版，不要直接接受“较短但模糊”的草稿。
+
+### 7. Draft the summary and choose evidence
 
 读取 `references/summary_prompt.md`，按其中结构写一版完整草稿，并先决定：
 
@@ -164,15 +200,29 @@ python "<skill_dir>/scripts/extract_reference_links.py" \
 
 - 推断性内容显式标 `Inference:`
 
+- 只有在检查过正文、appendix / supplement、图注、表注之后，仍然缺失的信息，才能写“**论文未明确给出**”
+
 - 行与行之间留空行
 
 - 关键概念、结论、限制用 Markdown **加粗**
 
 - 开头至少放一张代表性头图
 
+- 所有图片都用居中的 HTML 包裹，例如 `<p align="center"><img ... /></p>`；不要直接裸放 `<img>`
+
 - 重要实验图/表必须放在对应实验描述之后，不要统一堆到节末
 
-### 7. Materialize only the selected figures
+- 只要保留实验与评估这一节，默认从该节对应的 `### x.1` 开始组织；若训练方法被删去并顺延编号，就相应写成 `### 5.1`、`### 5.2` ...；每个子节都显式写 `- **研究问题**：`、`- **设置**：`、`- **结果**：`
+
+- `洞见与创新` 里先写 insights，再**原样保留**这一行：`（格式：**【创新点解决的问题】 -> 【受哪个 insight 启发】 -> 【设计了什么创新点】**）`；随后每条创新点都按 `- **【...】 -> 【...】 -> 【...】**` 的格式展开，不要改写成别的提示语
+
+- `AI idea brainstorming` 必须按 `### Idea X：标题` 小节展开；每个 idea 都显式写 `- **要解决的问题**：`、`- **继承的 insight / 机制 / 观察**：`、`- **方法设计**：`、`- **最小可行实验**：`、`- **主要风险**：`
+
+- 如果一个 bullet 同时包含问题、设置、结果、多个数字和解释，优先拆成 `2-4` 条或改成小节，而不是继续拉长
+
+- 完成初稿后，先做一轮结构归一化：把平铺实验改写成与当前实验节编号一致的 `### x.1 / x.2 / ...`，把平铺 idea 改写成 `### Idea X`，把所有裸 `<img>` 改成居中 HTML 包裹
+
+### 8. Materialize only the selected figures
 
 草稿定稿后，按实际用到的图片运行第二轮：
 
@@ -186,6 +236,39 @@ python "<skill_dir>/scripts/prepare_summary_figures.py" \
 
 然后写最终版 Markdown；只引用这次二次物化后真实存在的资源。
 
+### 9. Validate the final Markdown structure
+
+写完最终版 Markdown 后，运行：
+
+```bash
+python "<skill_dir>/scripts/validate_summary_format.py" \
+  --summary "<summary_path>"
+```
+
+如果系统没有 `python`，再改用 `python3`。
+
+要求：
+
+- 只要校验脚本报错，就回到 Markdown 继续改，直到通过
+
+- 先修结构错误，再微调措辞；不要带着裸 `<img>`、缺失的实验子节标题或缺失的 `### Idea X` 交付
+
+### 10. Hand off with next-step questions
+
+总结 Markdown 写完并校验通过后，在面向用户的最终回复里，除了给出总结路径，还要基于**论文内容 + 你刚写出的总结内容**，额外给出 `2-3` 个用户接下来大概率会感兴趣的问题，让用户直接选择下一步行为。
+
+要求：
+
+- 问题必须**贴合这篇论文本身**，不要给放之四海而皆准的空泛问题
+
+- 优先覆盖这几类高价值后续动作中的 `2-3` 类：更深入解释方法机制、拆解训练 / 实验设计、与某个 baseline 或 prior work 对比、分析局限性 / failure case、把 paper idea 延伸成可做的研究方向
+
+- 用**编号列表**给出，方便用户直接回复 `1`、`2` 或 `3`
+
+- 每一项写成“用户可能会想继续追问的问题 / 你可以继续执行的动作”，而不是笼统写“继续分析论文”
+
+- 如果论文最值得追问的是某个非常具体的点，例如某个关键实验、某个公式、某个训练接口、某个 surprising result，就优先把这个点放进候选问题
+
 ## Final checks
 
 交付前确认：
@@ -194,10 +277,28 @@ python "<skill_dir>/scripts/prepare_summary_figures.py" \
 
 - 如果论文训练了模型，包含“训练方法”；否则删去该节并顺延编号
 
+- `训练方法` 已优先提取正文、appendix / supplement、图注、表注里可见的 recipe；只有剩余缺失项才写“**论文未明确给出**”
+
+- `实验与评估` 已按当前节编号对应的 `### x.1 / x.2 / ...` 子节展开；每个子节都显式写出“研究问题 / 设置 / 结果”
+
 - 每个实验单元后面都有对应图或表
 
+- `洞见与创新` 已包含原样保留的格式提示行：`（格式：**【创新点解决的问题】 -> 【受哪个 insight 启发】 -> 【设计了什么创新点】**）`，且后续创新点都按 `- **【...】 -> 【...】 -> 【...】**` 展开
+
+- `潜在问题与后续方向` 已拆成当前节编号对应的 `### x.1 潜在问题` 与 `### x.2 后续方向`；其中 `潜在问题` 下包含 `#### 作者明确承认的局限` 与 `#### 基于论文证据可推导的潜在问题`
+
+- `AI idea brainstorming` 已按 `### Idea X：标题` 拆开，且每个 idea 都显式包含“要解决的问题 / 继承的 insight / 机制 / 观察 / 方法设计 / 最小可行实验 / 主要风险”
+
 - 重要表格若做节选，明确标注“**表格节选**”
+
+- 所有图片都使用居中的 HTML 包裹，并且宽度设置合理
 
 - 方法名超链接没有被反引号包裹
 
 - Markdown 中引用的图片文件都真实存在
+
+- 没有损坏的公式、明显乱码、破损的 LaTeX 控制序列或不必要的超长 bullet
+
+- 已运行 `scripts/validate_summary_format.py`，且通过
+
+- 给用户的最终回复里，除了总结路径，还包含 `2-3` 个基于该论文与总结内容定制的后续问题建议

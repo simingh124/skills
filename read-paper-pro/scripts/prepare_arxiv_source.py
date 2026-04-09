@@ -22,6 +22,7 @@ from pathlib import Path
 USER_AGENT = "read-paper-pro/1.0"
 ATOM_NS = {"atom": "http://www.w3.org/2005/Atom"}
 ID_RE = re.compile(r"(?<!\d)(\d{4}\.\d{4,5}(?:v\d+)?)(?!\d)")
+ARXIV_LINK_RE = re.compile(r"(?:https?://arxiv\.org)?/(?:abs|pdf)/(\d{4}\.\d{4,5}(?:v\d+)?)", re.IGNORECASE)
 HTML_TITLE_META_RE = re.compile(r'<meta\s+name="citation_title"\s+content="([^"]+)"', re.IGNORECASE)
 HTML_TITLE_TAG_RE = re.compile(r"<title>\s*\[[^\]]+\]\s*(.*?)\s*</title>", re.IGNORECASE | re.DOTALL)
 PROXY_ENV_VARS = ("http_proxy", "https_proxy", "all_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY")
@@ -90,6 +91,93 @@ def extract_title_candidates(xml_bytes: bytes) -> list[dict[str, str]]:
     return entries
 
 
+def select_title_match(query: str, entries: list[dict[str, str]], source_label: str, require_exact: bool = False) -> dict[str, str]:
+    if not entries:
+        raise RuntimeError(f"No arXiv results found for title via {source_label}: {query}")
+
+    normalized_query = normalize_text(query)
+    exact = [entry for entry in entries if normalize_text(entry["title"]) == normalized_query]
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
+        titles = "\n".join(f"- {entry['title']} ({entry['arxiv_id']})" for entry in exact)
+        raise RuntimeError(f"Ambiguous title match for '{query}' via {source_label}. Candidates:\n{titles}")
+
+    if len(entries) == 1 and not require_exact:
+        return entries[0]
+
+    titles = "\n".join(f"- {entry['title']} ({entry['arxiv_id']})" for entry in entries)
+    raise RuntimeError(f"Ambiguous title match for '{query}' via {source_label}. Candidates:\n{titles}")
+
+
+def dedupe_preserve_order(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
+
+
+def extract_arxiv_ids_from_html(text: str) -> list[str]:
+    candidates: list[str] = []
+    variants = [text, html.unescape(text)]
+    for variant in variants:
+        candidates.extend(ARXIV_LINK_RE.findall(variant))
+        candidates.extend(ARXIV_LINK_RE.findall(urllib.parse.unquote(variant)))
+    return dedupe_preserve_order(candidates)
+
+
+def resolve_title_via_web_search(query: str) -> dict[str, str]:
+    quoted_query = urllib.parse.quote(query)
+    search_attempts = [
+        (
+            "arXiv HTML title search",
+            f"https://arxiv.org/search/?query={quoted_query}&searchtype=title&abstracts=show&order=-announced_date_first&size=10",
+        ),
+        (
+            "DuckDuckGo site search",
+            "https://html.duckduckgo.com/html/?q="
+            + urllib.parse.quote(f'site:arxiv.org/abs "{query}"'),
+        ),
+    ]
+
+    errors: list[str] = []
+    for label, url in search_attempts:
+        try:
+            payload = request_bytes(url)
+        except RuntimeError as exc:
+            errors.append(f"{label}: {exc}")
+            continue
+
+        text = payload.decode("utf-8", errors="ignore")
+        candidate_ids = extract_arxiv_ids_from_html(text)
+        if not candidate_ids:
+            errors.append(f"{label}: no arXiv IDs found in search results")
+            continue
+
+        eprint(f"Web search via {label} found candidate arXiv IDs: {', '.join(candidate_ids[:5])}")
+        records: list[dict[str, str]] = []
+        for arxiv_id in candidate_ids[:8]:
+            try:
+                records.append(fetch_record_by_id(arxiv_id))
+            except RuntimeError as exc:
+                errors.append(f"{label}: failed to resolve {arxiv_id}: {exc}")
+
+        if not records:
+            continue
+
+        try:
+            return select_title_match(query, records, label, require_exact=True)
+        except RuntimeError as exc:
+            errors.append(str(exc))
+
+    joined_errors = " | ".join(errors) if errors else "no search attempts succeeded"
+    raise RuntimeError(f"Web search fallback failed for title '{query}': {joined_errors}")
+
+
 def resolve_title(query: str) -> dict[str, str]:
     encoded = urllib.parse.quote(query)
     urls = [
@@ -98,27 +186,26 @@ def resolve_title(query: str) -> dict[str, str]:
     ]
 
     entries: list[dict[str, str]] = []
+    api_errors: list[str] = []
     for url in urls:
-        entries = extract_title_candidates(request_bytes(url))
+        try:
+            entries = extract_title_candidates(request_bytes(url))
+        except RuntimeError as exc:
+            api_errors.append(f"{url}: {exc}")
+            continue
         if entries:
             break
 
-    if not entries:
-        raise RuntimeError(f"No arXiv results found for title: {query}")
-
-    normalized_query = normalize_text(query)
-    exact = [entry for entry in entries if normalize_text(entry["title"]) == normalized_query]
-    if len(exact) == 1:
-        return exact[0]
-    if len(exact) > 1:
-        titles = "\n".join(f"- {entry['title']} ({entry['arxiv_id']})" for entry in exact)
-        raise RuntimeError(f"Ambiguous title match for '{query}'. Candidates:\n{titles}")
-
-    if len(entries) == 1:
-        return entries[0]
-
-    titles = "\n".join(f"- {entry['title']} ({entry['arxiv_id']})" for entry in entries)
-    raise RuntimeError(f"Ambiguous title match for '{query}'. Candidates:\n{titles}")
+    try:
+        return select_title_match(query, entries, "arXiv Atom API")
+    except RuntimeError as atom_exc:
+        eprint(f"Falling back to web search for title '{query}': {atom_exc}")
+        try:
+            return resolve_title_via_web_search(query)
+        except RuntimeError as web_exc:
+            if api_errors:
+                raise RuntimeError(f"{atom_exc}\nAtom API errors: {' | '.join(api_errors)}\n{web_exc}") from web_exc
+            raise RuntimeError(f"{atom_exc}\n{web_exc}") from web_exc
 
 
 def resolve_query(query: str) -> dict[str, str]:
