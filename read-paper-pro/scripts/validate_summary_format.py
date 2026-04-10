@@ -15,6 +15,10 @@ HEADER_IMG_RE = re.compile(
 )
 SECTION_RE = re.compile(r'^##\s+(\d+)\.\s+(.+?)\s*$', re.M)
 INSIGHT_FORMAT_LINE_RE = re.compile(
+    r'^\s*（格式：\*\*【创新点解决的问题】 -> 【受哪个 insight 启发】 -> 【设计了什么创新点】\*\*）\s*$',
+    re.M,
+)
+LEGACY_INSIGHT_FORMAT_LINE_RE = re.compile(
     r'^\s*-\s*（格式：\*\*【创新点解决的问题】 -> 【受哪个 insight 启发】 -> 【设计了什么创新点】\*\*）\s*$',
     re.M,
 )
@@ -70,6 +74,26 @@ def ensure_header_image(summary_path: Path, text: str, errors: list[str]) -> Non
         errors.append('Missing centered header image block for ./figures/header.png.')
 
 
+def ensure_method_structure(text: str, errors: list[str]) -> None:
+    section = find_section(text, '方法')
+    if section is None:
+        errors.append('Missing section: ## <n>. 方法')
+        return
+
+    section_number, _, section_body = section
+    subheading_re = re.compile(rf'^###\s+{section_number}\.\d+\b.*$', re.M)
+    blocks = iter_subsections(section_body, subheading_re)
+    if not blocks:
+        errors.append(
+            f'Method section must contain subsections like ### {section_number}.1, ### {section_number}.2, ...'
+        )
+        return
+
+    first_heading = f'### {section_number}.1'
+    if not any(heading.startswith(first_heading) for heading, _ in blocks):
+        errors.append(f'Method section must include a first subsection like {first_heading}.')
+
+
 def ensure_experiment_structure(text: str, errors: list[str]) -> None:
     section = find_section(text, '实验与评估')
     if section is None:
@@ -98,19 +122,46 @@ def ensure_insight_structure(text: str, errors: list[str]) -> None:
         errors.append('Missing section: ## <n>. 洞见与创新')
         return
 
-    _, _, section_body = section
-    insight_matches = re.findall(r'^-\s+\*\*Insight\s+\d+\*\*[：:].*$', section_body, re.M)
-    if len(insight_matches) < 2:
-        errors.append('Insight section must contain at least two bullets like - **Insight 1**：...')
-
-    if not INSIGHT_FORMAT_LINE_RE.search(section_body):
+    section_number, _, section_body = section
+    subsection_re = re.compile(rf'^###\s+{section_number}\.(\d+)\s+(.+?)\s*$', re.M)
+    blocks = iter_subsections(section_body, subsection_re)
+    if not blocks:
         errors.append(
-            'Insight section must include the literal format line: - （格式：**【创新点解决的问题】 -> 【受哪个 insight 启发】 -> 【设计了什么创新点】**）'
+            f'Insight section must contain subsections like ### {section_number}.1 Insight and ### {section_number}.2 创新点.'
+        )
+        return
+
+    block_map = {heading: body for heading, body in blocks}
+    insight_heading = f'### {section_number}.1 Insight'
+    innovation_heading = f'### {section_number}.2 创新点'
+
+    if insight_heading not in block_map:
+        errors.append(f'Missing required subsection: {insight_heading}')
+        return
+    if innovation_heading not in block_map:
+        errors.append(f'Missing required subsection: {innovation_heading}')
+        return
+
+    insight_body = block_map[insight_heading]
+    insight_matches = re.findall(r'^-\s+\*\*Insight\s+\d+\*\*[：:].*$', insight_body, re.M)
+    if len(insight_matches) < 2:
+        errors.append(f'{insight_heading} must contain at least two bullets like - **Insight 1**：...')
+
+    innovation_body = block_map[innovation_heading]
+    if LEGACY_INSIGHT_FORMAT_LINE_RE.search(innovation_body):
+        errors.append(
+            f'{innovation_heading} must keep the format line as plain text, not as a list item.'
+        )
+    if not INSIGHT_FORMAT_LINE_RE.search(innovation_body):
+        errors.append(
+            f'{innovation_heading} must include the literal format line: （格式：**【创新点解决的问题】 -> 【受哪个 insight 启发】 -> 【设计了什么创新点】**）'
         )
 
-    innovation_matches = INNOVATION_BULLET_RE.findall(section_body)
+    innovation_matches = INNOVATION_BULLET_RE.findall(innovation_body)
     if not innovation_matches:
-        errors.append('Insight section must include at least one innovation bullet in the format - **【...】 -> 【...】 -> 【...】**')
+        errors.append(
+            f'{innovation_heading} must include at least one innovation bullet in the format - **【...】 -> 【...】 -> 【...】**'
+        )
 
 
 def ensure_risk_and_followup_structure(text: str, errors: list[str]) -> None:
@@ -184,6 +235,7 @@ def validate(summary_path: Path) -> None:
 
     ensure_no_bare_images(text, errors)
     ensure_header_image(summary_path, text, errors)
+    ensure_method_structure(text, errors)
     ensure_experiment_structure(text, errors)
     ensure_insight_structure(text, errors)
     ensure_risk_and_followup_structure(text, errors)
