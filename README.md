@@ -18,6 +18,10 @@ npx skills add https://github.com/simingh124/skills --list
 
 ## Skills
 
+### `tmux-remote-worker-setup`
+
+Resolve a local tmux session such as `gpu` or `gpu2` to the matching remote worker replica, configure that worker into a Codex-ready environment through `brainctl`, verify the final setup, and keep improving the workflow over time through run logs plus reusable pitfall memory.
+
 ### `read-feishu-doc-custom`
 
 Read and export Feishu/Lark wiki or doc content with `lark-mcp`, summarize documents, convert them to local Markdown, diagnose common wiki/doc token and auth issues, and maintain run-memory plus optimized workflow notes.

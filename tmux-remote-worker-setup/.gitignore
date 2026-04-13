@@ -1,0 +1,4 @@
+memory/runs/
+workspace/
+__pycache__/
+scripts/__pycache__/

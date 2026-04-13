@@ -1,0 +1,11 @@
+{
+  "skill_name": "tmux-remote-worker-setup",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "请根据 tmux session `gpu2` 自动识别对应 replica，并把远端 worker 配置成可用的 Codex 环境。",
+      "expected_output": "识别出 `gpu2` 对应的 replica，完成远端安装与文件同步，并给出 codex/node/npm/rg/nvitop 与 gpu_util.py 的验证结果。",
+      "files": []
+    }
+  ]
+}
