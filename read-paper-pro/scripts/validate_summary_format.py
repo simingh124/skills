@@ -116,6 +116,26 @@ def ensure_experiment_structure(text: str, errors: list[str]) -> None:
                 errors.append(f'{heading} is missing required label: {label}')
 
 
+def ensure_training_structure(text: str, errors: list[str]) -> None:
+    section = find_section(text, '训练方法')
+    if section is None:
+        return
+
+    _, _, section_body = section
+    required_labels = [
+        '- **模型与初始化**：',
+        '- **优化器与训练调度**：',
+        '- **数据与样本构造**：',
+        '- **训练流程**：',
+        '- **关键细节与训练技巧**：',
+        '- **其他训练关键信息**：',
+        '- **计算与实现**：',
+    ]
+    for label in required_labels:
+        if label not in section_body:
+            errors.append(f'Training section is missing required label: {label}')
+
+
 def ensure_insight_structure(text: str, errors: list[str]) -> None:
     section = find_section(text, '洞见与创新')
     if section is None:
@@ -236,6 +256,7 @@ def validate(summary_path: Path) -> None:
     ensure_no_bare_images(text, errors)
     ensure_header_image(summary_path, text, errors)
     ensure_method_structure(text, errors)
+    ensure_training_structure(text, errors)
     ensure_experiment_structure(text, errors)
     ensure_insight_structure(text, errors)
     ensure_risk_and_followup_structure(text, errors)
