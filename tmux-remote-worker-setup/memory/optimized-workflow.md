@@ -14,8 +14,9 @@
 3. Build a local payload for `node`, `npm`, `npx`, `codex`, `rg`, local Codex skills, `.env`, `AGENTS.md`, and `feishu_notify.py`.
 4. Copy payload contents to the worker through the shared mount and install them remotely.
 5. Run `/home/i-huangsiming/work/install.sh`, then patch `notify` and trusted project entries in `/root/.codex/config.toml`.
-6. Install `nvitop` through `/mnt/step3-abla/siming/.venv/bin/python -m pip`.
-7. Verify command availability, config entries, host mapping, `feishu_notify.py` syntax, and that `gpu_util.py` is still running.
+6. Install the remote Codex skill bundle with `npx skills add ... --global`: `read-paper-pro`, `find-skills`, `skill-creator`, `pdf`, `academic-researcher`, and `arxiv-search`.
+7. Install `nvitop` through `/mnt/step3-abla/siming/.venv/bin/python -m pip`.
+8. Verify command availability, config entries, host mapping, `feishu_notify.py` syntax, the required skill installations, and that `gpu_util.py` is still running.
 
 ## Stable Lessons
 

@@ -12,6 +12,14 @@ REPLICA_RE='ws-[a-z0-9]+-jlaunch-[a-z0-9]+-cfcd2084'
 JOB_RE='ws-[a-z0-9]+-jlaunch-[a-z0-9]+'
 NODE_ROOT="$HOME/.nvm/versions/node/v22.16.0"
 CODEX_HOME="$HOME/.codex"
+REMOTE_SKILL_SPECS=(
+  'https://github.com/simingh124/skills|read-paper-pro'
+  'https://github.com/vercel-labs/skills|find-skills'
+  'https://github.com/anthropics/skills|skill-creator'
+  'https://github.com/anthropics/skills|pdf'
+  'https://github.com/shubhamsaboo/awesome-llm-apps|academic-researcher'
+  'https://github.com/langchain-ai/deepagents|arxiv-search'
+)
 
 json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/\\n/g'
@@ -57,6 +65,28 @@ run_network_bash() {
 
   echo "Proxy attempt failed, retrying once with direct network access." >&2
   bash -lc "set -euo pipefail; ${DIRECT_PROXY_RESET}; ${body}"
+}
+
+render_remote_skill_install_commands() {
+  local spec repo skill
+  for spec in "${REMOTE_SKILL_SPECS[@]}"; do
+    IFS='|' read -r repo skill <<< "$spec"
+    printf 'echo installing_remote_skill:%s\n' "$skill"
+    printf "if bash -lc 'set -euo pipefail; eval \$(curl -s http://deploy.i.shaipower.com/httpproxy); npx skills add %q --skill %q -y --global'; then\n" "$repo" "$skill"
+    printf '  :\n'
+    printf 'else\n'
+    printf "  bash -lc 'set -euo pipefail; unset https_proxy http_proxy all_proxy; npx skills add %q --skill %q -y --global'\n" "$repo" "$skill"
+    printf 'fi\n'
+  done
+}
+
+render_remote_skill_verification_commands() {
+  local spec repo skill
+  for spec in "${REMOTE_SKILL_SPECS[@]}"; do
+    IFS='|' read -r repo skill <<< "$spec"
+    printf 'test -f /root/.agents/skills/%s/SKILL.md\n' "$skill"
+    printf 'echo remote_skill_installed:%s\n' "$skill"
+  done
 }
 
 remote_exec_body() {
@@ -216,6 +246,8 @@ install -m 600 "\$PAYLOAD/codex_home/.env" /root/.codex/.env
 install -m 644 "\$PAYLOAD/codex_home/AGENTS.md" /root/.codex/AGENTS.md
 install -m 755 "\$PAYLOAD/codex_home/feishu_notify.py" /root/.codex/feishu_notify.py
 
+$(render_remote_skill_install_commands)
+
 /mnt/step3-abla/siming/.venv/bin/python -m pip install \
   -i https://artifactory.stepfun-inc.com/artifactory/api/pypi/pypi-public/simple/ \
   --trusted-host artifactory.stepfun-inc.com \
@@ -229,7 +261,7 @@ EOF
     2> "$run_dir/remote_setup.stderr.txt"
 
   local verification_script
-  verification_script="$(cat <<'EOF'
+  verification_script="$(cat <<EOF
 set -euo pipefail
 command -v node npm npx codex rg nvitop
 node -v
@@ -242,6 +274,7 @@ grep -n '\[projects."/workspace"\]' /root/.codex/config.toml
 grep -n '\[projects."/home/i-huangsiming/work"\]' /root/.codex/config.toml
 grep -n 'crs\.us\.bestony\.com' /etc/hosts
 /mnt/step3-abla/siming/.venv/bin/python -c 'from pathlib import Path; compile(Path("/root/.codex/feishu_notify.py").read_text(encoding="utf-8"), "/root/.codex/feishu_notify.py", "exec"); print("notify_py_ok")'
+$(render_remote_skill_verification_commands)
 pgrep -af "/home/i-huangsiming/work/tools/gpu_util.py"
 EOF
 )"

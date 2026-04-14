@@ -9,6 +9,11 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
+REMOTE_SKILLS_TEXT = (
+    "`read-paper-pro`, `find-skills`, `skill-creator`, `pdf`, "
+    "`academic-researcher`, and `arxiv-search`"
+)
+
 
 def _default_skill_dir() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -58,8 +63,9 @@ def _render(logs: list[dict]) -> str:
         "3. Build a local payload for `node`, `npm`, `npx`, `codex`, `rg`, local Codex skills, `.env`, `AGENTS.md`, and `feishu_notify.py`.",
         "4. Copy payload contents to the worker through the shared mount and install them remotely.",
         "5. Run `/home/i-huangsiming/work/install.sh`, then patch `notify` and trusted project entries in `/root/.codex/config.toml`.",
-        "6. Install `nvitop` through `/mnt/step3-abla/siming/.venv/bin/python -m pip`.",
-        "7. Verify command availability, config entries, host mapping, `feishu_notify.py` syntax, and that `gpu_util.py` is still running.",
+        f"6. Install the remote Codex skill bundle through `npx skills add ... --global`: {REMOTE_SKILLS_TEXT}.",
+        "7. Install `nvitop` through `/mnt/step3-abla/siming/.venv/bin/python -m pip`.",
+        "8. Verify command availability, config entries, host mapping, `feishu_notify.py` syntax, the required skill installations, and that `gpu_util.py` is still running.",
         "",
         "## Dynamic Guardrails From Runs",
         "",

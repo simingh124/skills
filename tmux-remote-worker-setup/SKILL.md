@@ -14,6 +14,7 @@ Use this skill when the user points at an existing local tmux session and wants 
 - Reads tmux pane metadata and scrollback to resolve the worker replica tied to the named session.
 - Uses local `/kubebrain/brainctl` as the primary control path; the tmux session is only used to discover the worker.
 - Builds a local offline payload for `node`, `npm`, `npx`, `codex`, `rg`, and local Codex skills, then installs them onto the remote worker.
+- Installs a remote Codex bootstrap skill set during setup so the worker can use `read-paper-pro`, `find-skills`, `skill-creator`, `pdf`, `academic-researcher`, and `arxiv-search` immediately after bootstrap.
 - Copies `~/.codex/.env`, `~/.codex/AGENTS.md`, and `~/.codex/feishu_notify.py` through the local payload so the worker gets the same Codex config without manual paste.
 - Verifies the final remote environment and checks that `python /home/i-huangsiming/work/tools/gpu_util.py` is still running.
 
@@ -84,6 +85,7 @@ scripts/setup_remote_worker_from_tmux.sh configure <tmux-session-name> \
 - resolved tmux session -> replica mapping
 - whether setup finished successfully
 - versions found for `codex`, `node`, `npm`, `rg`, and `nvitop`
+- confirmation that the required remote skills were installed: `read-paper-pro`, `find-skills`, `skill-creator`, `pdf`, `academic-researcher`, and `arxiv-search`
 - confirmation that `notify` and trusted-project config were written
 - confirmation that `gpu_util.py` is still running
 
