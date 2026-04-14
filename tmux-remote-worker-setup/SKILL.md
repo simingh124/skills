@@ -14,6 +14,7 @@ Use this skill when the user points at an existing local tmux session and wants 
 - Reads tmux pane metadata and scrollback to resolve the worker replica tied to the named session.
 - Uses local `/kubebrain/brainctl` as the primary control path; the tmux session is only used to discover the worker.
 - Builds a local offline payload for `node`, `npm`, `npx`, `codex`, `rg`, and local Codex skills, then installs them onto the remote worker.
+- Can preload a VS Code Remote server by reusing the local `~/.vscode-server` cache or downloading the matching tarball locally, then copying it to the worker through the shared `/home/i-huangsiming/work` path.
 - Installs a remote Codex bootstrap skill set during setup so the worker can use `read-paper-pro`, `find-skills`, `skill-creator`, `pdf`, `academic-researcher`, and `arxiv-search` immediately after bootstrap.
 - Copies `~/.codex/.env`, `~/.codex/AGENTS.md`, and `~/.codex/feishu_notify.py` through the local payload so the worker gets the same Codex config without manual paste.
 - Verifies the final remote environment and checks that `python /home/i-huangsiming/work/tools/gpu_util.py` is still running.
@@ -22,6 +23,7 @@ Use this skill when the user points at an existing local tmux session and wants 
 
 - Use the exact tmux session name the user gave you. If they did not provide one, ask for it.
 - Do not guess the replica. The helper script extracts the latest `replica=` / `pod=` / `JOB_ID=` evidence from tmux history. If that evidence is missing, stop and ask the user for a session with preserved scrollback or for the explicit replica name.
+- Do not guess a VS Code server commit. When the user wants VS Code Remote preloaded, extract the commit from their local VS Code Remote log or from an existing local `~/.vscode-server/cli/servers/<Quality>-<commit>` cache entry.
 - Always use the absolute brainctl path `/kubebrain/brainctl`.
 - Keep Python execution inside `/mnt/step3-abla/siming/.venv/bin/python`.
 - Do not interrupt the tmux pane or kill `gpu_util.py` unless the user explicitly asks. This workflow configures the worker through local `brainctl exec`, so the foreground process in tmux can stay untouched.
@@ -68,7 +70,7 @@ The goal is to make future worker setup more reliable, not to create a run log.
 
 ```bash
 scripts/setup_remote_worker_from_tmux.sh configure <tmux-session-name> \
-  --workspace-dir workspace
+  --workspace-dir /home/i-huangsiming/work/codex_assets/.tmux_remote_worker_setup_workspace
 ```
 
 2. Read these generated files before replying:
@@ -88,6 +90,35 @@ scripts/setup_remote_worker_from_tmux.sh configure <tmux-session-name> \
 - confirmation that the required remote skills were installed: `read-paper-pro`, `find-skills`, `skill-creator`, `pdf`, `academic-researcher`, and `arxiv-search`
 - confirmation that `notify` and trusted-project config were written
 - confirmation that `gpu_util.py` is still running
+
+## VS Code Remote preload workflow
+
+Use this when the remote worker is slow to download a VS Code server tarball itself.
+
+1. Extract the commit from the user's local VS Code Remote log, for example `Stable-41dd792b5e652393e7787322889ed5fdc58bd75b` means commit `41dd792b5e652393e7787322889ed5fdc58bd75b`.
+2. Run:
+
+```bash
+scripts/setup_remote_worker_from_tmux.sh install-vscode-server <tmux-session-name> \
+  --workspace-dir /home/i-huangsiming/work/codex_assets/.tmux_remote_worker_setup_workspace \
+  --vscode-server-commit <commit>
+```
+
+3. Read these generated files before replying:
+
+- `.../session_context.json`
+- `.../access_check.txt`
+- `.../vscode_server_manifest.json`
+- `.../remote_setup.stdout.txt`
+- `.../verification.txt`
+- `.../summary.json`
+
+4. Report back:
+
+- resolved tmux session -> replica mapping
+- whether the preload used the local cache or a local download
+- the VS Code server commit / quality / platform staged
+- confirmation that `/root/.vscode-server/cli/servers/<Quality>-<commit>/server/bin/code-server` exists on the worker
 
 ## Run log shape
 
@@ -126,3 +157,4 @@ If both attempts fail, surface the error instead of inventing a workaround.
 - "帮我把 tmux 里的 gpu2 对应远端机器配成能跑 codex 的环境"
 - "tmux session 名叫 gpu，帮我修一下对应 worker 的 codex / node / nvitop 配置"
 - "我只知道 tmux session 是 gpu2，你直接把那台远端服务器环境配置好"
+- "tmux gpu 对应的远端机子下载 VS Code Server 太慢了，你从本地缓存或本地下载后帮我预装过去"
