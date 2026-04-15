@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 IMG_BLOCK_RE = re.compile(r'<p align="center">.*?<img\b.*?</p>', re.S)
+FENCED_CODE_BLOCK_RE = re.compile(r'```.*?```', re.S)
+INLINE_CODE_RE = re.compile(r'`([^`\n]+)`')
 HEADER_IMG_RE = re.compile(
     r'<p align="center">\s*<img\b[^>]*src="\./figures/header\.png"[^>]*>.*?</p>',
     re.S,
@@ -63,6 +65,28 @@ def ensure_no_bare_images(text: str, errors: list[str]) -> None:
     for match in re.finditer(r'<img\b', stripped):
         errors.append(
             f'Found bare <img> outside a centered <p align="center"> wrapper at line {line_number(stripped, match.start())}.'
+        )
+
+
+def looks_like_math_code(content: str) -> bool:
+    if re.search(r'\\[A-Za-z]+', content):
+        return True
+    if re.search(r'[A-Za-z0-9][_^]\{?[^`\s]+', content):
+        return True
+    if re.search(r'[A-Za-z0-9)\]}]\s*(?:=|<|>|<=|>=)\s*[A-Za-z0-9(\\{]', content):
+        return True
+    return False
+
+
+def ensure_no_backticked_math(text: str, errors: list[str]) -> None:
+    stripped = FENCED_CODE_BLOCK_RE.sub('', text)
+    for match in INLINE_CODE_RE.finditer(stripped):
+        content = match.group(1).strip()
+        if not looks_like_math_code(content):
+            continue
+        errors.append(
+            'Found math-like inline code '
+            f'`{content}` at line {line_number(stripped, match.start())}; use $...$ or $$...$$ instead so Markdown can render LaTeX.'
         )
 
 
@@ -254,6 +278,7 @@ def validate(summary_path: Path) -> None:
     errors: list[str] = []
 
     ensure_no_bare_images(text, errors)
+    ensure_no_backticked_math(text, errors)
     ensure_header_image(summary_path, text, errors)
     ensure_method_structure(text, errors)
     ensure_training_structure(text, errors)
