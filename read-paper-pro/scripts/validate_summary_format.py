@@ -25,6 +25,7 @@ LEGACY_INSIGHT_FORMAT_LINE_RE = re.compile(
     re.M,
 )
 INNOVATION_BULLET_RE = re.compile(r'^-\s+\*\*【.+?】\s*->\s*【.+?】\s*->\s*【.+?】\*\*\s*$', re.M)
+RISK_OUTLINE_DETAIL_RE = re.compile(r'^-\s+(?:\*\*[^*\n]+\*\*|[^:\n：]+)[：:]\s*\S.+$', re.M)
 
 
 class ValidationError(Exception):
@@ -244,8 +245,14 @@ def ensure_risk_and_followup_structure(text: str, errors: list[str]) -> None:
         errors.append(f'{risk_heading} must include {explicit_heading}')
     if inferred_heading not in risk_block_map:
         errors.append(f'{risk_heading} must include {inferred_heading}')
-    elif 'Inference:' not in risk_block_map[inferred_heading]:
-        errors.append(f'{inferred_heading} must include at least one explicit Inference: marker.')
+    for subheading in [explicit_heading, inferred_heading]:
+        if subheading not in risk_block_map:
+            continue
+        risk_items = RISK_OUTLINE_DETAIL_RE.findall(risk_block_map[subheading])
+        if not risk_items:
+            errors.append(
+                f'{subheading} must include at least one bullet in the format - **{{outline}}**：{{detail}} or - {{outline}}：{{detail}}.'
+            )
 
 
 def ensure_idea_structure(text: str, errors: list[str]) -> None:
