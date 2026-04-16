@@ -50,6 +50,22 @@ compatibility:
 
 运行脚本时保持 shell 的当前目录仍然是用户当前目录，不要切到 skill 目录。
 
+## Reading boundary
+
+默认**不要参考当前工作目录、父目录、兄弟目录或历史产物目录中的其他内容**。这类周围文件通常和当前论文无关，只会引入噪音并浪费时间 / token。
+
+你应当只依赖以下两类信息源：
+
+- skill 内的说明与资源：`SKILL.md`、`references/summary_prompt.md`，以及本 skill 的脚本生成出的中间产物
+
+- 当前论文下载得到的资源：`source_dir` 下的 TeX / bib / figure / table / appendix / supplement，以及由这些源码整理出来的 `combined_source.tex`、`reference_links.json`、`figures/manifest.json` 等论文派生产物
+
+默认不要为了“找补充信息”去扫描其他论文目录、`codex_assets/`、用户当前目录里的无关文件，或任何与当前论文 source 无直接关系的路径。
+
+只有当用户**显式指定**某个额外文件或目录必须参考时，才读取那个额外路径；否则就把注意力集中在 skill 自身说明和当前论文 source 上。
+
+上述边界只是在限制**本地目录漫游**，不是在禁止外部搜索。若理解当前论文需要补充某篇引用论文、baseline、训练设置、评测协议、数据集或相关方法的具体细节，可以直接联网搜索，或打开 `reference_links.json` 中已有的链接继续查。目标是把这些被引用对象讲具体，而不是停留在“采用和 XXX 相同的方法 / 设置”这种过于抽象的说法。
+
 ## Workflow
 
 ### 1. Resolve paper metadata and announce paths
